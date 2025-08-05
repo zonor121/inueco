@@ -38,7 +38,7 @@ jobs:
               issue_number,
               assignees: [user],
             });
-
+  
       - name: Get project item ID
         id: get-item
         if: steps.first-comment.outputs.result == 'true'
@@ -48,11 +48,11 @@ jobs:
           script: |
             const issueNodeId = context.payload.issue.node_id;
             const projectNumber = 3;
-            const orgLogin = "tsenturion";
+            const userLogin = "tsenturion";
 
             const result = await github.graphql(`
-              query($orgLogin: String!, $projectNumber: Int!) {
-                organization(login: $orgLogin) {
+              query($userLogin: String!, $projectNumber: Int!) {
+                user(login: $userLogin) {
                   projectV2(number: $projectNumber) {
                     id
                     fields(first: 20) {
@@ -82,11 +82,10 @@ jobs:
                   }
                 }
               }
-            `, { orgLogin, projectNumber });
+            `, { userLogin, projectNumber });
 
-            const project = result.organization.projectV2;
+            const project = result.user.projectV2;
 
-            // Ищем item для текущего issue
             const item = project.items.nodes.find(n => n.content?.id === issueNodeId);
             if (!item) {
               core.setFailed("Issue not found in project.");
