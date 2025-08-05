@@ -169,7 +169,7 @@
 ### 1. Найдите доступную задачу
 Посмотрите на доступные задачи одним из способов:
 - **Issues**: https://github.com/tsenturion/inueco/issues
-- **Project Board** (более удобный вид): https://github.com/users/tsenturion/projects/3/views/2?visibleFields=%5B%22Title%22%2C%22Assignees%22%2C%22Status%22%2C212755558%5D
+- **Project Board** (более удобный вид): [https://github.com/users/tsenturion/projects/3/views/2?visibleFields=%5B%22Title%22%2C%22Assignees%22%2C%22Status%22%2C212755558%5D](https://github.com/users/tsenturion/projects/3/views/2?visibleFields=%5B%22Title%22%2C%22Assignees%22%2C%22Status%22%2C212755558%2C%22Labels%22%5D)
 
 ### 2. Проверьте дедлайн
 - Откройте выбранную задачу
