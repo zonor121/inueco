@@ -104,20 +104,23 @@ jobs:
               return;
             }
 
-            return JSON.stringify({
+            core.setOutput("projectData", JSON.stringify({
               projectId: project.id,
               itemId: item.id,
               fieldId: statusField.id,
               optionId: inProgressOption.id
-            });
+            }));
+
 
       - name: Set status to In Progress
         if: steps.first-comment.outputs.result == 'true'
         uses: actions/github-script@v7
+        env:
+          PROJECT_DATA: ${{ steps.get-item.outputs.projectData }}
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           script: |
-            const data = JSON.parse(`${{ steps.get-item.outputs.result }}`);
+            const data = JSON.parse(process.env.PROJECT_DATA);
 
             await github.graphql(`
               mutation($input: UpdateProjectV2ItemFieldValueInput!) {
