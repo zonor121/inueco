@@ -75,11 +75,6 @@ jobs:
 
             const statusField = item.fieldValues.nodes.find(fv => fv.field?.name === "Status");
 
-            if (!statusField || !statusField.value) {
-              core.setFailed("Status not set for this issue.");
-              return;
-            }
-
             if (statusField.value === "Blocked") {
               core.setFailed("This issue is Blocked and cannot be assigned.");
               return;
