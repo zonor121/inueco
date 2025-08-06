@@ -93,9 +93,18 @@ jobs:
           if [ -n "$status_field_id" ] && [ -n "$todo_option_id" ]; then
             # Get project item ID for issue2
             issue2_num=$(jq -r '.number' "issue2.json")
-            project_item2_id=$(gh project item-list 3 --owner tsenturion --format json | jq -r ".[] | select(.content.number == $issue2_num) | .id")
+            echo "Getting project items for issue #$issue2_num"
+            gh project item-list 3 --owner tsenturion --format json > project_items.json
+            echo "Project items structure:"
+            cat project_items.json | head -20
+            
+            # Try different selectors to find the right structure
+            project_item2_id=$(jq -r ".items[] | select(.content.number == $issue2_num) | .id" project_items.json 2>/dev/null || \
+                              jq -r ".[] | select(.content.number == $issue2_num) | .id" project_items.json 2>/dev/null || \
+                              jq -r ".items[] | select(.content.issue.number == $issue2_num) | .id" project_items.json 2>/dev/null || echo "")
+            
             echo "Setting Todo status for issue2 (project item ID: $project_item2_id)"
-            if [ -n "$project_item2_id" ] && [ "$project_item2_id" != "null" ]; then
+            if [ -n "$project_item2_id" ] && [ "$project_item2_id" != "null" ] && [ "$project_item2_id" != "" ]; then
               gh project item-edit --project-id "$project_id" --id "$project_item2_id" --field-id "$status_field_id" --single-select-option-id "$todo_option_id" || echo "Failed to set Todo status"
             else
               echo "Could not find project item ID for issue2"
@@ -105,9 +114,15 @@ jobs:
           if [ -n "$status_field_id" ] && [ -n "$blocked_option_id" ]; then
             # Get project item ID for issue3
             issue3_num=$(jq -r '.number' "issue3.json")
-            project_item3_id=$(gh project item-list 3 --owner tsenturion --format json | jq -r ".[] | select(.content.number == $issue3_num) | .id")
+            echo "Getting project items for issue #$issue3_num"
+            
+            # Try different selectors to find the right structure
+            project_item3_id=$(jq -r ".items[] | select(.content.number == $issue3_num) | .id" project_items.json 2>/dev/null || \
+                              jq -r ".[] | select(.content.number == $issue3_num) | .id" project_items.json 2>/dev/null || \
+                              jq -r ".items[] | select(.content.issue.number == $issue3_num) | .id" project_items.json 2>/dev/null || echo "")
+            
             echo "Setting Blocked status for issue3 (project item ID: $project_item3_id)"
-            if [ -n "$project_item3_id" ] && [ "$project_item3_id" != "null" ]; then
+            if [ -n "$project_item3_id" ] && [ "$project_item3_id" != "null" ] && [ "$project_item3_id" != "" ]; then
               gh project item-edit --project-id "$project_id" --id "$project_item3_id" --field-id "$status_field_id" --single-select-option-id "$blocked_option_id" || echo "Failed to set Blocked status"
             else
               echo "Could not find project item ID for issue3"
@@ -136,7 +151,8 @@ jobs:
             echo "Checking $description (#$number)..."
 
             assignees=$(gh issue view "$number" --json assignees | jq -r '.assignees[].login // empty')
-            status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" || echo "")
+            status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".items[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || \
+                    gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || echo "")
 
             echo "Found assignees: '$assignees'"
             echo "Found status: '$status'"
@@ -176,7 +192,8 @@ jobs:
             exit 1
           fi
 
-          blocked_status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" || echo "")
+          blocked_status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".items[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || \
+                           gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || echo "")
           if [ "$blocked_status" = "Blocked" ]; then
             echo "✅ Blocked issue kept its status ($blocked_status)"
           else
