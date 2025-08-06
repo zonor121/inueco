@@ -79,12 +79,12 @@ jobs:
           gh project field-list 3 --owner tsenturion --format json > fields.json
           cat fields.json
           
-          status_field_id=$(jq -r '.[] | select(.name=="Status") | .id' fields.json)
+          status_field_id=$(jq -r '.fields[] | select(.name=="Status") | .id' fields.json)
           echo "Status field ID: $status_field_id"
           
           # Get option IDs for Status field values
-          todo_option_id=$(jq -r '.[] | select(.name=="Status") | .options[] | select(.name=="Todo") | .id' fields.json)
-          blocked_option_id=$(jq -r '.[] | select(.name=="Status") | .options[] | select(.name=="Blocked") | .id' fields.json)
+          todo_option_id=$(jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="Todo") | .id' fields.json)
+          blocked_option_id=$(jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="Blocked") | .id' fields.json)
           
           echo "Todo option ID: $todo_option_id"
           echo "Blocked option ID: $blocked_option_id"
