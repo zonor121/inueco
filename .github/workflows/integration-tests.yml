@@ -150,10 +150,12 @@ jobs:
         run: |
           echo "🧹 Cleaning up test issues..."
           if [[ -f issue_numbers.txt ]]; then
-            for num in $(cat issue_numbers.txt); do
-              echo "Deleting issue #$num"
-              gh issue delete "$num" --yes || echo "Failed to delete issue #$num (might already be deleted)"
-            done
+            while IFS= read -r num; do
+              if [[ -n "$num" ]]; then
+                echo "Deleting issue #$num"
+                gh issue delete "$num" --yes || echo "Failed to delete issue #$num (might already be deleted)"
+              fi
+            done < issue_numbers.txt
           else
             echo "No issues to clean up"
           fi)
