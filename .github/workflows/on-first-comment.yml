@@ -77,6 +77,22 @@ jobs:
                             id
                           }
                         }
+                        fieldValues(first: 20) {
+                          nodes {
+                            ... on ProjectV2ItemFieldSingleSelectValue {
+                              field {
+                                ... on ProjectV2FieldCommon {
+                                  id
+                                  name
+                                }
+                              }
+                              option {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -101,6 +117,12 @@ jobs:
             const inProgressOption = statusField.options.find(opt => opt.name === "In Progress");
             if (!inProgressOption) {
               core.setFailed('"In Progress" option not found.');
+              return;
+            }
+
+            const currentStatus = item.fieldValues.nodes.find(fv => fv.field.name === "Status");
+            if (currentStatus?.option?.name === "Blocked") {
+              core.setFailed("This issue is currently Blocked and cannot be taken.");
               return;
             }
 
