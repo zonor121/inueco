@@ -89,17 +89,29 @@ jobs:
           echo "Todo option ID: $todo_option_id"
           echo "Blocked option ID: $blocked_option_id"
 
-          # Set statuses using correct field and option IDs
+          # Set statuses using correct project item IDs (not issue IDs)
           if [ -n "$status_field_id" ] && [ -n "$todo_option_id" ]; then
-            node2=$(jq -r '.id' "issue2.json")
-            echo "Setting Todo status for issue2 (node: $node2)"
-            gh project item-edit --project-id "$project_id" --id "$node2" --field-id "$status_field_id" --single-select-option-id "$todo_option_id" || echo "Failed to set Todo status"
+            # Get project item ID for issue2
+            issue2_num=$(jq -r '.number' "issue2.json")
+            project_item2_id=$(gh project item-list 3 --owner tsenturion --format json | jq -r ".[] | select(.content.number == $issue2_num) | .id")
+            echo "Setting Todo status for issue2 (project item ID: $project_item2_id)"
+            if [ -n "$project_item2_id" ] && [ "$project_item2_id" != "null" ]; then
+              gh project item-edit --project-id "$project_id" --id "$project_item2_id" --field-id "$status_field_id" --single-select-option-id "$todo_option_id" || echo "Failed to set Todo status"
+            else
+              echo "Could not find project item ID for issue2"
+            fi
           fi
           
           if [ -n "$status_field_id" ] && [ -n "$blocked_option_id" ]; then
-            node3=$(jq -r '.id' "issue3.json")
-            echo "Setting Blocked status for issue3 (node: $node3)"
-            gh project item-edit --project-id "$project_id" --id "$node3" --field-id "$status_field_id" --single-select-option-id "$blocked_option_id" || echo "Failed to set Blocked status"
+            # Get project item ID for issue3
+            issue3_num=$(jq -r '.number' "issue3.json")
+            project_item3_id=$(gh project item-list 3 --owner tsenturion --format json | jq -r ".[] | select(.content.number == $issue3_num) | .id")
+            echo "Setting Blocked status for issue3 (project item ID: $project_item3_id)"
+            if [ -n "$project_item3_id" ] && [ "$project_item3_id" != "null" ]; then
+              gh project item-edit --project-id "$project_id" --id "$project_item3_id" --field-id "$status_field_id" --single-select-option-id "$blocked_option_id" || echo "Failed to set Blocked status"
+            else
+              echo "Could not find project item ID for issue3"
+            fi
           fi
 
       - name: Add first comment to all issues
@@ -124,9 +136,7 @@ jobs:
             echo "Checking $description (#$number)..."
 
             assignees=$(gh issue view "$number" --json assignees | jq -r '.assignees[].login // empty')
-            
-            # Try to get status from project (might fail if project setup failed)
-            status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" || echo "unknown")
+            status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" || echo "")
 
             echo "Found assignees: '$assignees'"
             echo "Found status: '$status'"
@@ -134,18 +144,18 @@ jobs:
             if [ "$assignees" = "$expect_assignee" ]; then
               echo "✅ Assignee OK ($assignees)"
             else
-              echo "⚠️ Assignee mismatch: '$assignees' != '$expect_assignee' (might be expected if workflow didn't run yet)"
+              echo "❌ Assignee mismatch: '$assignees' != '$expect_assignee'"
+              exit 1
             fi
 
-            # Only check status if we successfully got project info
-            if [ "$status" != "unknown" ]; then
+            # Check status only if we expect a specific one
+            if [ -n "$expect_status" ] && [ "$expect_status" != "" ]; then
               if [ "$status" = "$expect_status" ]; then
                 echo "✅ Status OK ($status)"
               else
-                echo "⚠️ Status mismatch: '$status' != '$expect_status'"
+                echo "❌ Status mismatch: '$status' != '$expect_status'"
+                exit 1
               fi
-            else
-              echo "⚠️ Could not get status from project"
             fi
           }
 
@@ -154,22 +164,24 @@ jobs:
           issue3=${{ steps.extract_info.outputs.issue3_number }}
 
           validate_issue "$issue1" "tsenturion" "In Progress" "Issue No Status"
-          validate_issue "$issue2" "tsenturion" "In Progress" "Issue Todo"
+          validate_issue "$issue2" "tsenturion" "In Progress" "Issue Todo" 
 
-          # Issue 3 (Blocked) must remain unchanged
+          # Issue 3 (Blocked) must remain unchanged - no assignee, keep Blocked status
+          echo "Checking Issue Blocked (#$issue3)..."
           blocked_assignee_count=$(gh issue view "$issue3" --json assignees | jq '.assignees | length')
           if [ "$blocked_assignee_count" -eq 0 ]; then
             echo "✅ Blocked issue has no assignees"
           else
-            echo "⚠️ Blocked issue has assignees (expected: 0, got: $blocked_assignee_count)"
+            echo "❌ Blocked issue should have no assignees, but has $blocked_assignee_count"
+            exit 1
           fi
 
-          status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" || echo "unknown")
-
-          if [ "$status" = "Blocked" ] || [ "$status" = "unknown" ]; then
-            echo "✅ Blocked issue status OK ($status)"
+          blocked_status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" || echo "")
+          if [ "$blocked_status" = "Blocked" ]; then
+            echo "✅ Blocked issue kept its status ($blocked_status)"
           else
-            echo "⚠️ Blocked issue status changed: $status"
+            echo "❌ Blocked issue status should be 'Blocked', but is '$blocked_status'"
+            exit 1
           fi
 
       - name: Add second comment
