@@ -53,52 +53,54 @@ jobs:
           echo "issue2_number=${numbers[1]}" >> $GITHUB_OUTPUT
           echo "issue3_number=${numbers[2]}" >> $GITHUB_OUTPUT
 
-      - name: Debug project structure
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "Available projects:"
-          gh project list --owner tsenturion --format json | jq '.'
-          echo "Available project commands:"
-          gh project --help
-
       - name: Assign issues to Project and set statuses
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Try different approaches to get project ID
-          echo "Method 1: Using project number"
-          gh project list --owner tsenturion --format json | jq -r '.projects[] | select(.number==3) | .id' || true
-          
-          echo "Method 2: Using project title/name"
-          gh project list --owner tsenturion --format json | jq -r '.projects[] | select(.title=="Your Project Name") | .id' || true
-          
-          echo "Method 3: Get first project"
-          project_id=$(gh project list --owner tsenturion --format json | jq -r '.projects[0].id' || echo "")
-          
-          if [ -z "$project_id" ]; then
-            echo "Could not find project ID, skipping project assignment"
-            exit 0
-          fi
-          
+          project_id="PVT_kwHOBM2RHM4A_swG"
           echo "Using project ID: $project_id"
 
-          # Add issues to project
-          for i in issue*.json; do
-            node_id=$(jq -r '.id' "$i")
-            echo "Adding issue with node_id: $node_id to project"
-            gh project item-add "$project_id" --content-id "$node_id" || echo "Failed to add $i to project"
-          done
-
-          # Try to set statuses (this might fail if field names are different)
-          node2=$(jq -r '.id' "issue2.json")
-          node3=$(jq -r '.id' "issue3.json")
-
-          echo "Setting status for issue2 (node: $node2)"
-          gh project item-edit --project-id "$project_id" --field-name "Status" --field-value "Todo" --id "$node2" || echo "Failed to set Todo status"
+          # Add issues to project using --url instead of --content-id
+          issue1_num=$(jq -r '.number' "issue1.json")
+          issue2_num=$(jq -r '.number' "issue2.json") 
+          issue3_num=$(jq -r '.number' "issue3.json")
           
-          echo "Setting status for issue3 (node: $node3)"
-          gh project item-edit --project-id "$project_id" --field-name "Status" --field-value "Blocked" --id "$node3" || echo "Failed to set Blocked status"
+          echo "Adding issue #$issue1_num to project"
+          gh project item-add 3 --owner tsenturion --url "https://github.com/tsenturion/inueco/issues/$issue1_num" || echo "Failed to add issue1"
+          
+          echo "Adding issue #$issue2_num to project"
+          gh project item-add 3 --owner tsenturion --url "https://github.com/tsenturion/inueco/issues/$issue2_num" || echo "Failed to add issue2"
+          
+          echo "Adding issue #$issue3_num to project"
+          gh project item-add 3 --owner tsenturion --url "https://github.com/tsenturion/inueco/issues/$issue3_num" || echo "Failed to add issue3"
+
+          # Get field IDs first
+          echo "Getting field information..."
+          gh project field-list 3 --owner tsenturion --format json > fields.json
+          cat fields.json
+          
+          status_field_id=$(jq -r '.[] | select(.name=="Status") | .id' fields.json)
+          echo "Status field ID: $status_field_id"
+          
+          # Get option IDs for Status field values
+          todo_option_id=$(jq -r '.[] | select(.name=="Status") | .options[] | select(.name=="Todo") | .id' fields.json)
+          blocked_option_id=$(jq -r '.[] | select(.name=="Status") | .options[] | select(.name=="Blocked") | .id' fields.json)
+          
+          echo "Todo option ID: $todo_option_id"
+          echo "Blocked option ID: $blocked_option_id"
+
+          # Set statuses using correct field and option IDs
+          if [ -n "$status_field_id" ] && [ -n "$todo_option_id" ]; then
+            node2=$(jq -r '.id' "issue2.json")
+            echo "Setting Todo status for issue2 (node: $node2)"
+            gh project item-edit --project-id "$project_id" --id "$node2" --field-id "$status_field_id" --single-select-option-id "$todo_option_id" || echo "Failed to set Todo status"
+          fi
+          
+          if [ -n "$status_field_id" ] && [ -n "$blocked_option_id" ]; then
+            node3=$(jq -r '.id' "issue3.json")
+            echo "Setting Blocked status for issue3 (node: $node3)"
+            gh project item-edit --project-id "$project_id" --id "$node3" --field-id "$status_field_id" --single-select-option-id "$blocked_option_id" || echo "Failed to set Blocked status"
+          fi
 
       - name: Add first comment to all issues
         run: |
