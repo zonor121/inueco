@@ -54,8 +54,7 @@ jobs:
                                   name
                                 }
                               }
-                              optionId
-                              optionName: name
+                              name
                             }
                           }
                         }
@@ -75,7 +74,10 @@ jobs:
 
             const statusField = item.fieldValues.nodes.find(fv => fv.field?.name === "Status");
 
-            if (statusField.value === "Blocked") {
+            const currentStatus = statusField?.name ?? "Unspecified";
+            console.log(`Current issue status: ${currentStatus}`);
+
+            if (currentStatus === "Blocked") {
               core.setFailed("This issue is Blocked and cannot be assigned.");
               return;
             }
