@@ -21,18 +21,29 @@ jobs:
       - name: Authenticate GH CLI
         run: echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
 
-      - name: Create 3 test issues
-        id: create
+      - name: Create first test issue
         run: |
-          create_issue() {
-            local title=$1
-            echo "Creating issue: $title"
-            
-            # Create issue and capture the URL
-            issue_url=$(gh issue create -t "$title" -b "Test issue for $title")
-            
-            # Extract issue number from URL (format: https://github.com/owner/repo/issues/123)
-            issue_number=$(echo "$issue_url" | grep -o '[0-9]\+
+          echo "Creating Issue No Status..."
+          issue1_url=$(gh issue create -t "Issue No Status" -b "Test issue for Issue No Status")
+          issue1_number=$(echo "$issue1_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
+          echo "$issue1_number" > issue_numbers.txt
+          gh issue view "$issue1_number" --json number,id > "issue1.json"
+
+      - name: Create second test issue
+        run: |
+          echo "Creating Issue Todo..."
+          issue2_url=$(gh issue create -t "Issue Todo" -b "Test issue for Issue Todo")
+          issue2_number=$(echo "$issue2_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
+          echo "$issue2_number" >> issue_numbers.txt
+          gh issue view "$issue2_number" --json number,id > "issue2.json"
+
+      - name: Create third test issue
+        run: |
+          echo "Creating Issue Blocked..."
+          issue3_url=$(gh issue create -t "Issue Blocked" -b "Test issue for Issue Blocked")
+          issue3_number=$(echo "$issue3_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
+          echo "$issue3_number" >> issue_numbers.txt
+          gh issue view "$issue3_number" --json number,id > "issue3.json"
 
       - name: Extract issue info
         id: extract_info
@@ -48,23 +59,25 @@ jobs:
         run: |
           project_id=$(gh project list --owner tsenturion --format json | jq -r '.[] | select(.number==3) | .id')
 
-          for i in Issue*.json; do
+          for i in issue*.json; do
             node_id=$(jq -r '.id' "$i")
             gh project item-add $project_id --content-id "$node_id"
           done
 
           # Set statuses
-          node2=$(jq -r '.id' "Issue Todo.json")
-          node3=$(jq -r '.id' "Issue Blocked.json")
+          node2=$(jq -r '.id' "issue2.json")
+          node3=$(jq -r '.id' "issue3.json")
 
           gh project item-edit --project-id $project_id --field-name "Status" --field-value "Todo" --id "$node2"
           gh project item-edit --project-id $project_id --field-name "Status" --field-value "Blocked" --id "$node3"
 
       - name: Add first comment to all issues
         run: |
-          for num in $(cat issue_numbers.txt); do
-            gh issue comment "$num" -b "First test comment"
-          done
+          while read -r num; do
+            if [ -n "$num" ]; then
+              gh issue comment "$num" -b "First test comment"
+            fi
+          done < issue_numbers.txt
 
       - name: Wait for action to apply
         run: sleep 30
@@ -77,20 +90,19 @@ jobs:
             local expect_status=$3
             local description=$4
 
-            echo "🔎 Checking $description (#$number)..."
+            echo "Checking $description (#$number)..."
 
             assignees=$(gh issue view "$number" --json assignees | jq -r '.assignees[].login // empty')
-            status=$(gh project item-list --owner tsenturion --format json --project 3 \
-              | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"")
+            status=$(gh project item-list --owner tsenturion --format json --project 3 | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"")
 
-            if [[ "$assignees" == "$expect_assignee" ]]; then
+            if [ "$assignees" = "$expect_assignee" ]; then
               echo "✅ Assignee OK ($assignees)"
             else
               echo "❌ Assignee mismatch: $assignees != $expect_assignee"
               exit 1
             fi
 
-            if [[ "$status" == "$expect_status" ]]; then
+            if [ "$status" = "$expect_status" ]; then
               echo "✅ Status OK ($status)"
             else
               echo "❌ Status mismatch: $status != $expect_status"
@@ -107,17 +119,16 @@ jobs:
 
           # Issue 3 (Blocked) must remain unchanged
           blocked_assignee_count=$(gh issue view "$issue3" --json assignees | jq '.assignees | length')
-          if [[ "$blocked_assignee_count" -eq 0 ]]; then
+          if [ "$blocked_assignee_count" -eq 0 ]; then
             echo "✅ Blocked issue has no assignees"
           else
             echo "❌ Blocked issue should have no assignees"
             exit 1
           fi
 
-          status=$(gh project item-list --owner tsenturion --format json --project 3 \
-              | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"")
+          status=$(gh project item-list --owner tsenturion --format json --project 3 | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"")
 
-          if [[ "$status" == "Blocked" ]]; then
+          if [ "$status" = "Blocked" ]; then
             echo "✅ Blocked issue kept its status"
           else
             echo "❌ Blocked issue status changed: $status"
@@ -126,157 +137,40 @@ jobs:
 
       - name: Add second comment
         run: |
-          for num in $(cat issue_numbers.txt); do
-            gh issue comment "$num" -b "Second test comment"
-          done
+          while read -r num; do
+            if [ -n "$num" ]; then
+              gh issue comment "$num" -b "Second test comment"
+            fi
+          done < issue_numbers.txt
 
       - name: Wait for action again
         run: sleep 30
 
       - name: Confirm no additional changes after second comment
         run: |
-          for num in $(cat issue_numbers.txt); do
-            count=$(gh issue view "$num" --json assignees | jq '.assignees | length')
-            if [[ "$count" -gt 1 ]]; then
-              echo "❌ Issue #$num has more than one assignee after second comment"
-              exit 1
+          while read -r num; do
+            if [ -n "$num" ]; then
+              count=$(gh issue view "$num" --json assignees | jq '.assignees | length')
+              if [ "$count" -gt 1 ]; then
+                echo "❌ Issue #$num has more than one assignee after second comment"
+                exit 1
+              fi
             fi
-          done
+          done < issue_numbers.txt
 
           echo "✅ No changes after second comment"
 
-      - name: Cleanup - Delete test issues
+      - name: Cleanup test issues
         if: always()
         run: |
           echo "Cleaning up test issues..."
           if [ -f issue_numbers.txt ]; then
-            cat issue_numbers.txt | while read -r issue_num; do
+            while read -r issue_num; do
               if [ -n "$issue_num" ]; then
                 echo "Deleting issue #$issue_num"
-                gh issue delete "$issue_num" --yes || true
+                gh issue delete "$issue_num" --yes || echo "Failed to delete #$issue_num"
               fi
-            done
+            done < issue_numbers.txt
           else
             echo "No issue_numbers.txt file found"
-          fi)
-            
-            echo "$issue_number" >> issue_numbers.txt
-            
-            # Get issue details and save to JSON file
-            gh issue view "$issue_number" --json number,id > "$title.json"
-          }
-
-          create_issue "Issue No Status"
-          create_issue "Issue Todo"
-          create_issue "Issue Blocked"
-
-      - name: Extract issue info
-        id: extract
-        run: |
-          mapfile -t numbers < issue_numbers.txt
-          echo "issue1_number=${numbers[0]}" >> $GITHUB_OUTPUT
-          echo "issue2_number=${numbers[1]}" >> $GITHUB_OUTPUT
-          echo "issue3_number=${numbers[2]}" >> $GITHUB_OUTPUT
-
-      - name: Assign issues to Project and set statuses
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          project_id=$(gh project list --owner tsenturion --format json | jq -r '.[] | select(.number==3) | .id')
-
-          for i in Issue*.json; do
-            node_id=$(jq -r '.node_id' "$i")
-            gh project item-add $project_id --content-id "$node_id"
-          done
-
-          # Set statuses
-          node2=$(jq -r '.node_id' IssueTodo.json)
-          node3=$(jq -r '.node_id' IssueBlocked.json)
-
-          gh project item-edit-field $project_id --field "Status" --item "$node2" --value "Todo"
-          gh project item-edit-field $project_id --field "Status" --item "$node3" --value "Blocked"
-
-      - name: Add first comment to all issues
-        run: |
-          for num in $(cat issue_numbers.txt); do
-            gh issue comment "$num" -b "First test comment"
-          done
-
-      - name: Wait for action to apply
-        run: sleep 30
-
-      - name: Validate expected changes
-        run: |
-          validate_issue() {
-            local number=$1
-            local expect_assignee=$2
-            local expect_status=$3
-            local description=$4
-
-            echo "🔎 Checking $description (#$number)..."
-
-            assignees=$(gh issue view "$number" --json assignees | jq -r '.assignees[].login // empty')
-            status=$(gh project item-list --owner tsenturion --format json --project 3 \
-              | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"")
-
-            if [[ "$assignees" == "$expect_assignee" ]]; then
-              echo "✅ Assignee OK ($assignees)"
-            else
-              echo "❌ Assignee mismatch: $assignees != $expect_assignee"
-              exit 1
-            fi
-
-            if [[ "$status" == "$expect_status" ]]; then
-              echo "✅ Status OK ($status)"
-            else
-              echo "❌ Status mismatch: $status != $expect_status"
-              exit 1
-            fi
-          }
-
-          issue1=${{ steps.extract.outputs.issue1_number }}
-          issue2=${{ steps.extract.outputs.issue2_number }}
-          issue3=${{ steps.extract.outputs.issue3_number }}
-
-          validate_issue "$issue1" "tsenturion" "In Progress" "Issue No Status"
-          validate_issue "$issue2" "tsenturion" "In Progress" "Issue Todo"
-
-          # Issue 3 (Blocked) must remain unchanged
-          blocked_assignee_count=$(gh issue view "$issue3" --json assignees | jq '.assignees | length')
-          if [[ "$blocked_assignee_count" -eq 0 ]]; then
-            echo "✅ Blocked issue has no assignees"
-          else
-            echo "❌ Blocked issue should have no assignees"
-            exit 1
           fi
-
-          status=$(gh project item-list --owner tsenturion --format json --project 3 \
-              | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"")
-
-          if [[ "$status" == "Blocked" ]]; then
-            echo "✅ Blocked issue kept its status"
-          else
-            echo "❌ Blocked issue status changed: $status"
-            exit 1
-          fi
-
-      - name: Add second comment
-        run: |
-          for num in $(cat issue_numbers.txt); do
-            gh issue comment "$num" -b "Second test comment"
-          done
-
-      - name: Wait for action again
-        run: sleep 30
-
-      - name: Confirm no additional changes after second comment
-        run: |
-          for num in $(cat issue_numbers.txt); do
-            count=$(gh issue view "$num" --json assignees | jq '.assignees | length')
-            if [[ "$count" -gt 1 ]]; then
-              echo "❌ Issue #$num has more than one assignee after second comment"
-              exit 1
-            fi
-          done
-
-          echo "✅ No changes after second comment"
