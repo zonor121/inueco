@@ -21,7 +21,17 @@ jobs:
               repo: context.repo.repo,
               issue_number,
             });
-            return comments.data.length === 1;
+
+            const isFirst = comments.data.length === 1;
+
+            if (!isFirst) {
+              console.log("Not the first comment. Skipping auto-assign and status update.");
+            } else {
+              console.log("This is the first comment. Proceeding with assignment and status update.");
+            }
+
+            return isFirst;
+
 
       - name: Get project data and check if Blocked
         id: get-item
