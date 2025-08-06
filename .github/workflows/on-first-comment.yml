@@ -48,15 +48,14 @@ jobs:
                         }
                         fieldValues(first: 20) {
                           nodes {
-                            ... on ProjectV2ItemFieldValue {
+                            ... on ProjectV2ItemFieldSingleSelectValue {
                               field {
                                 ... on ProjectV2FieldCommon {
                                   name
                                 }
                               }
-                              ... on ProjectV2ItemFieldSingleSelectValue {
-                                value
-                              }
+                              optionId
+                              optionName: name
                             }
                           }
                         }
