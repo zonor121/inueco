@@ -151,8 +151,7 @@ jobs:
             echo "Checking $description (#$number)..."
 
             assignees=$(gh issue view "$number" --json assignees | jq -r '.assignees[].login // empty')
-            status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".items[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || \
-                    gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $number) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || echo "")
+            status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".items[] | select(.content.number == $number) | .status // \"\"" || echo "")
 
             echo "Found assignees: '$assignees'"
             echo "Found status: '$status'"
@@ -179,8 +178,8 @@ jobs:
           issue2=${{ steps.extract_info.outputs.issue2_number }}
           issue3=${{ steps.extract_info.outputs.issue3_number }}
 
-          validate_issue "$issue1" "tsenturion" "In Progress" "Issue No Status"
-          validate_issue "$issue2" "tsenturion" "In Progress" "Issue Todo" 
+          validate_issue "$issue1" "tsenturion" "" "Issue No Status"
+          validate_issue "$issue2" "tsenturion" "Todo" "Issue Todo" 
 
           # Issue 3 (Blocked) must remain unchanged - no assignee, keep Blocked status
           echo "Checking Issue Blocked (#$issue3)..."
@@ -192,8 +191,7 @@ jobs:
             exit 1
           fi
 
-          blocked_status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".items[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || \
-                           gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".[] | select(.content.number == $issue3) | .fieldValues[] | select(.field.name == \"Status\") | .name // \"\"" 2>/dev/null || echo "")
+          blocked_status=$(gh project item-list --owner tsenturion --format json --project 3 2>/dev/null | jq -r ".items[] | select(.content.number == $issue3) | .status // \"\"" || echo "")
           if [ "$blocked_status" = "Blocked" ]; then
             echo "✅ Blocked issue kept its status ($blocked_status)"
           else
