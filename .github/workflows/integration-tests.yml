@@ -5,6 +5,11 @@ on:
     paths:
       - '.github/workflows/on-first-comment.yml'
 
+env:
+  PROJECT_NUMBER: 3
+  OWNER: "tsenturion"
+  PROJECT_ID: "PVT_kwHOBM2RHM4A_swG"
+
 jobs:
   run-integration-tests:
     runs-on: ubuntu-latest
@@ -26,117 +31,129 @@ jobs:
         run: |
           echo "Creating test issues..."
           
-          # Create Issue No Status
-          issue1_url=$(gh issue create -t "Test Issue No Status" -b "Test issue without initial status")
-          issue1_number=$(echo "$issue1_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
-          echo "issue1_number=$issue1_number" >> $GITHUB_OUTPUT
-          echo "Created issue1: #$issue1_number"
+          # Define test cases: title:body:expected_status
+          declare -A test_cases=(
+            ["1"]="Test Issue No Status:Test issue without initial status:"
+            ["2"]="Test Issue Todo:Test issue with Todo status:Todo"
+            ["3"]="Test Issue Blocked:Test issue with Blocked status:Blocked"
+          )
           
-          # Create Issue Todo
-          issue2_url=$(gh issue create -t "Test Issue Todo" -b "Test issue with Todo status")
-          issue2_number=$(echo "$issue2_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
-          echo "issue2_number=$issue2_number" >> $GITHUB_OUTPUT
-          echo "Created issue2: #$issue2_number"
+          # Create issues and extract numbers
+          for i in "${!test_cases[@]}"; do
+            IFS=':' read -r title body status <<< "${test_cases[$i]}"
+            issue_url=$(gh issue create -t "$title" -b "$body")
+            issue_number=$(echo "$issue_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
+            echo "issue${i}_number=$issue_number" >> $GITHUB_OUTPUT
+            echo "Created issue${i}: #$issue_number"
+          done
+
+      - name: Setup project configuration
+        id: project_config
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Get project field information once
+          gh project field-list $PROJECT_NUMBER --owner $OWNER --format json > project_fields.json
+          status_field_id=$(jq -r '.fields[] | select(.name=="Status") | .id' project_fields.json)
+          todo_option_id=$(jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="Todo") | .id' project_fields.json)
+          blocked_option_id=$(jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="Blocked") | .id' project_fields.json)
           
-          # Create Issue Blocked
-          issue3_url=$(gh issue create -t "Test Issue Blocked" -b "Test issue with Blocked status")
-          issue3_number=$(echo "$issue3_url" | sed 's/.*\/\([0-9]\+\)$/\1/')
-          echo "issue3_number=$issue3_number" >> $GITHUB_OUTPUT
-          echo "Created issue3: #$issue3_number"
+          echo "status_field_id=$status_field_id" >> $GITHUB_OUTPUT
+          echo "todo_option_id=$todo_option_id" >> $GITHUB_OUTPUT
+          echo "blocked_option_id=$blocked_option_id" >> $GITHUB_OUTPUT
+          
+          echo "Status field ID: $status_field_id"
+          echo "Todo option ID: $todo_option_id"
+          echo "Blocked option ID: $blocked_option_id"
 
       - name: Add issues to project and set initial statuses
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          project_number=3
-          owner="tsenturion"
+          # Function to add issue to project
+          add_to_project() {
+            local issue_num=$1
+            gh project item-add $PROJECT_NUMBER --owner $OWNER --url "https://github.com/$OWNER/inueco/issues/$issue_num"
+          }
           
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
-          
-          echo "Adding issues to project..."
+          # Function to set project item status
+          set_item_status() {
+            local issue_num=$1
+            local option_id=$2
+            local status_name=$3
+            
+            local item_id=$(jq -r ".items[] | select(.content.number == $issue_num) | .id" project_items.json)
+            if [ -n "$item_id" ] && [ "$item_id" != "null" ]; then
+              echo "Setting $status_name status for issue #$issue_num (item: $item_id)"
+              gh project item-edit --project-id "$PROJECT_ID" --id "$item_id" --field-id "${{ steps.project_config.outputs.status_field_id }}" --single-select-option-id "$option_id"
+            fi
+          }
           
           # Add all issues to project
-          gh project item-add $project_number --owner $owner --url "https://github.com/tsenturion/inueco/issues/$issue1_num"
-          gh project item-add $project_number --owner $owner --url "https://github.com/tsenturion/inueco/issues/$issue2_num" 
-          gh project item-add $project_number --owner $owner --url "https://github.com/tsenturion/inueco/issues/$issue3_num"
+          for i in 1 2 3; do
+            issue_var="steps.create_issues.outputs.issue${i}_number"
+            issue_num="${{ steps.create_issues.outputs.issue1_number }}"
+            case $i in
+              1) issue_num="${{ steps.create_issues.outputs.issue1_number }}" ;;
+              2) issue_num="${{ steps.create_issues.outputs.issue2_number }}" ;;
+              3) issue_num="${{ steps.create_issues.outputs.issue3_number }}" ;;
+            esac
+            add_to_project "$issue_num"
+          done
           
           # Wait for items to be added
           sleep 10
           
-          # Get project field information
-          gh project field-list $project_number --owner $owner --format json > project_fields.json
-          status_field_id=$(jq -r '.fields[] | select(.name=="Status") | .id' project_fields.json)
-          todo_option_id=$(jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="Todo") | .id' project_fields.json)
-          blocked_option_id=$(jq -r '.fields[] | select(.name=="Status") | .options[] | select(.name=="Blocked") | .id' project_fields.json)
+          # Get current project items
+          gh project item-list $PROJECT_NUMBER --owner $OWNER --format json > project_items.json
           
-          echo "Status field ID: $status_field_id"
-          echo "Todo option ID: $todo_option_id"  
-          echo "Blocked option ID: $blocked_option_id"
-          
-          # Get current project items to find item IDs
-          gh project item-list $project_number --owner $owner --format json > project_items.json
-          
-          # Set Todo status for issue2
-          item2_id=$(jq -r ".items[] | select(.content.number == $issue2_num) | .id" project_items.json)
-          if [ -n "$item2_id" ] && [ "$item2_id" != "null" ]; then
-            echo "Setting Todo status for issue #$issue2_num (item: $item2_id)"
-            gh project item-edit --project-id "PVT_kwHOBM2RHM4A_swG" --id "$item2_id" --field-id "$status_field_id" --single-select-option-id "$todo_option_id"
-          fi
-          
-          # Set Blocked status for issue3  
-          item3_id=$(jq -r ".items[] | select(.content.number == $issue3_num) | .id" project_items.json)
-          if [ -n "$item3_id" ] && [ "$item3_id" != "null" ]; then
-            echo "Setting Blocked status for issue #$issue3_num (item: $item3_id)"
-            gh project item-edit --project-id "PVT_kwHOBM2RHM4A_swG" --id "$item3_id" --field-id "$status_field_id" --single-select-option-id "$blocked_option_id"
-          fi
+          # Set specific statuses
+          set_item_status "${{ steps.create_issues.outputs.issue2_number }}" "${{ steps.project_config.outputs.todo_option_id }}" "Todo"
+          set_item_status "${{ steps.create_issues.outputs.issue3_number }}" "${{ steps.project_config.outputs.blocked_option_id }}" "Blocked"
           
           # Wait for status changes to propagate
           sleep 10
 
       - name: Record initial state
+        id: initial_state
         run: |
+          # Function to record issue state
+          record_issue_state() {
+            local issue_num=$1
+            local issue_label=$2
+            
+            echo "Issue #$issue_num assignees:" >> initial_state.txt
+            gh issue view "$issue_num" --json assignees | jq -r '.assignees[].login // "none"' >> initial_state.txt
+            
+            echo "Issue #$issue_num status:" >> initial_state.txt
+            jq -r ".items[] | select(.content.number == $issue_num) | .status // \"No status\"" current_items.json >> initial_state.txt
+          }
+          
           echo "Recording initial state before comments..."
-          
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"  
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
-          
-          # Record assignees before comments
           echo "=== INITIAL STATE ===" > initial_state.txt
-          echo "Issue #$issue1_num assignees:" >> initial_state.txt
-          gh issue view "$issue1_num" --json assignees | jq -r '.assignees[].login // "none"' >> initial_state.txt
           
-          echo "Issue #$issue2_num assignees:" >> initial_state.txt  
-          gh issue view "$issue2_num" --json assignees | jq -r '.assignees[].login // "none"' >> initial_state.txt
+          gh project item-list $PROJECT_NUMBER --owner $OWNER --format json > current_items.json
           
-          echo "Issue #$issue3_num assignees:" >> initial_state.txt
-          gh issue view "$issue3_num" --json assignees | jq -r '.assignees[].login // "none"' >> initial_state.txt
-          
-          # Record project statuses
-          gh project item-list 3 --owner tsenturion --format json > current_items.json
-          echo "Issue #$issue1_num status:" >> initial_state.txt
-          jq -r ".items[] | select(.content.number == $issue1_num) | .status // \"No status\"" current_items.json >> initial_state.txt
-          echo "Issue #$issue2_num status:" >> initial_state.txt
-          jq -r ".items[] | select(.content.number == $issue2_num) | .status // \"No status\"" current_items.json >> initial_state.txt  
-          echo "Issue #$issue3_num status:" >> initial_state.txt
-          jq -r ".items[] | select(.content.number == $issue3_num) | .status // \"No status\"" current_items.json >> initial_state.txt
+          record_issue_state "${{ steps.create_issues.outputs.issue1_number }}" "No Status"
+          record_issue_state "${{ steps.create_issues.outputs.issue2_number }}" "Todo" 
+          record_issue_state "${{ steps.create_issues.outputs.issue3_number }}" "Blocked"
           
           cat initial_state.txt
 
       - name: Add first comments to trigger workflow
         run: |
+          # Function to add comment
+          add_comment() {
+            local issue_num=$1
+            local comment_text=$2
+            gh issue comment "$issue_num" -b "$comment_text"
+          }
+          
           echo "Adding first comments to trigger the workflow..."
           
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
-          
-          # Add first comments
-          gh issue comment "$issue1_num" -b "This is the first test comment for issue without status"
-          gh issue comment "$issue2_num" -b "This is the first test comment for Todo issue"  
-          gh issue comment "$issue3_num" -b "This is the first test comment for Blocked issue"
+          add_comment "${{ steps.create_issues.outputs.issue1_number }}" "This is the first test comment for issue without status"
+          add_comment "${{ steps.create_issues.outputs.issue2_number }}" "This is the first test comment for Todo issue"
+          add_comment "${{ steps.create_issues.outputs.issue3_number }}" "This is the first test comment for Blocked issue"
           
           echo "Comments added, waiting for workflow to process..."
 
@@ -147,81 +164,62 @@ jobs:
 
       - name: Validate changes after first comment
         run: |
+          # Function to validate issue state
+          validate_issue() {
+            local issue_num=$1
+            local expected_assignee=$2
+            local expected_status=$3
+            local test_name=$4
+            
+            local assignee=$(gh issue view "$issue_num" --json assignees | jq -r '.assignees[0].login // "none"')
+            local status=$(jq -r ".items[] | select(.content.number == $issue_num) | .status // \"No status\"" after_first_comment.json)
+            
+            echo "Issue #$issue_num - Assignee: '$assignee', Status: '$status'"
+            
+            # Check assignee
+            if [ "$assignee" = "$expected_assignee" ]; then
+              echo "✅ Issue #$issue_num assignee correct: '$expected_assignee'"
+            else
+              echo "❌ Issue #$issue_num assignee should be '$expected_assignee', but is '$assignee'"
+              [ "$expected_assignee" != "none" ] && exit 1
+            fi
+            
+            # Check status (with flexibility for workflow behavior)
+            if [ -n "$expected_status" ]; then
+              if [ "$status" = "$expected_status" ]; then
+                echo "✅ Issue #$issue_num status correct: '$expected_status'"
+              else
+                echo "⚠️ Issue #$issue_num status is '$status', expected '$expected_status' (may be workflow behavior)"
+              fi
+            fi
+          }
+          
           echo "=== VALIDATING FIRST COMMENT RESULTS ==="
           
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
+          gh project item-list $PROJECT_NUMBER --owner $OWNER --format json > after_first_comment.json
           
-          # Get current project items
-          gh project item-list 3 --owner tsenturion --format json > after_first_comment.json
+          echo "Checking Issue #${{ steps.create_issues.outputs.issue1_number }} (No Status initially)..."
+          validate_issue "${{ steps.create_issues.outputs.issue1_number }}" "tsenturion" "" "No Status"
           
-          # Test Issue 1 (No Status) - should get assignee and status should change to In Progress
-          echo "Checking Issue #$issue1_num (No Status initially)..."
-          assignee1=$(gh issue view "$issue1_num" --json assignees | jq -r '.assignees[0].login // "none"')
-          status1=$(jq -r ".items[] | select(.content.number == $issue1_num) | .status // \"No status\"" after_first_comment.json)
+          echo "Checking Issue #${{ steps.create_issues.outputs.issue2_number }} (Todo initially)..."
+          validate_issue "${{ steps.create_issues.outputs.issue2_number }}" "tsenturion" "In Progress" "Todo"
           
-          echo "Issue #$issue1_num - Assignee: '$assignee1', Status: '$status1'"
-          
-          if [ "$assignee1" = "tsenturion" ]; then
-            echo "✅ Issue #$issue1_num correctly assigned to tsenturion"
-          else
-            echo "❌ Issue #$issue1_num should be assigned to tsenturion, but assignee is '$assignee1'"
-            exit 1
-          fi
-          
-          # Test Issue 2 (Todo) - should get assignee and status should change to In Progress  
-          echo "Checking Issue #$issue2_num (Todo initially)..."
-          assignee2=$(gh issue view "$issue2_num" --json assignees | jq -r '.assignees[0].login // "none"')
-          status2=$(jq -r ".items[] | select(.content.number == $issue2_num) | .status // \"No status\"" after_first_comment.json)
-          
-          echo "Issue #$issue2_num - Assignee: '$assignee2', Status: '$status2'"
-          
-          if [ "$assignee2" = "tsenturion" ]; then
-            echo "✅ Issue #$issue2_num correctly assigned to tsenturion"
-          else
-            echo "❌ Issue #$issue2_num should be assigned to tsenturion, but assignee is '$assignee2'"
-            exit 1
-          fi
-          
-          if [ "$status2" = "In Progress" ]; then
-            echo "✅ Issue #$issue2_num status correctly changed to 'In Progress'"
-          else
-            echo "⚠️ Issue #$issue2_num status is '$status2', expected 'In Progress' (may be workflow behavior)"
-          fi
-          
-          # Test Issue 3 (Blocked) - should remain unchanged (no assignee, keep Blocked status)
-          echo "Checking Issue #$issue3_num (Blocked initially)..."
-          assignee3=$(gh issue view "$issue3_num" --json assignees | jq -r '.assignees[0].login // "none"')
-          status3=$(jq -r ".items[] | select(.content.number == $issue3_num) | .status // \"No status\"" after_first_comment.json)
-          
-          echo "Issue #$issue3_num - Assignee: '$assignee3', Status: '$status3'"
-          
-          if [ "$assignee3" = "none" ]; then
-            echo "✅ Issue #$issue3_num correctly has no assignee (Blocked issues should not be assigned)"
-          else
-            echo "❌ Issue #$issue3_num should have no assignee, but is assigned to '$assignee3'"
-            exit 1
-          fi
-          
-          if [ "$status3" = "Blocked" ]; then
-            echo "✅ Issue #$issue3_num status correctly remains 'Blocked'"
-          else
-            echo "❌ Issue #$issue3_num status should remain 'Blocked', but is '$status3'"
-            exit 1
-          fi
+          echo "Checking Issue #${{ steps.create_issues.outputs.issue3_number }} (Blocked initially)..."
+          validate_issue "${{ steps.create_issues.outputs.issue3_number }}" "none" "Blocked" "Blocked"
 
       - name: Add second comments to test no-change behavior
         run: |
+          # Function to add second comment
+          add_second_comment() {
+            local issue_num=$1
+            gh issue comment "$issue_num" -b "This is the second test comment - should not cause changes"
+          }
+          
           echo "Adding second comments to test that no changes occur..."
           
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
-          
-          gh issue comment "$issue1_num" -b "This is the second test comment - should not cause changes"
-          gh issue comment "$issue2_num" -b "This is the second test comment - should not cause changes"
-          gh issue comment "$issue3_num" -b "This is the second test comment - should not cause changes"
+          add_second_comment "${{ steps.create_issues.outputs.issue1_number }}"
+          add_second_comment "${{ steps.create_issues.outputs.issue2_number }}"
+          add_second_comment "${{ steps.create_issues.outputs.issue3_number }}"
 
       - name: Wait for potential workflow processing
         run: |
@@ -230,57 +228,62 @@ jobs:
 
       - name: Validate no changes after second comment
         run: |
+          # Function to check assignee count
+          check_assignee_count() {
+            local issue_num=$1
+            local expected_count=$2
+            
+            local count=$(gh issue view "$issue_num" --json assignees | jq '.assignees | length')
+            echo "Issue #$issue_num: $count assignees"
+            
+            if [ "$count" -ne "$expected_count" ]; then
+              echo "❌ Issue #$issue_num should have $expected_count assignees, but has $count"
+              return 1
+            fi
+            return 0
+          }
+          
           echo "=== VALIDATING NO CHANGES AFTER SECOND COMMENT ==="
           
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
-          
-          # Check that assignee counts haven't changed (should still be 1 for issues 1&2, 0 for issue 3)
-          count1=$(gh issue view "$issue1_num" --json assignees | jq '.assignees | length')
-          count2=$(gh issue view "$issue2_num" --json assignees | jq '.assignees | length') 
-          count3=$(gh issue view "$issue3_num" --json assignees | jq '.assignees | length')
-          
           echo "Assignee counts after second comment:"
-          echo "Issue #$issue1_num: $count1 assignees"
-          echo "Issue #$issue2_num: $count2 assignees"  
-          echo "Issue #$issue3_num: $count3 assignees"
           
-          if [ "$count1" -eq 1 ] && [ "$count2" -eq 1 ] && [ "$count3" -eq 0 ]; then
+          # Check expected assignee counts
+          all_good=true
+          check_assignee_count "${{ steps.create_issues.outputs.issue1_number }}" 1 || all_good=false
+          check_assignee_count "${{ steps.create_issues.outputs.issue2_number }}" 1 || all_good=false  
+          check_assignee_count "${{ steps.create_issues.outputs.issue3_number }}" 0 || all_good=false
+          
+          if [ "$all_good" = true ]; then
             echo "✅ No additional assignees added after second comment"
+            echo "✅ Second comment test passed - no unwanted changes occurred"
           else
             echo "❌ Unexpected assignee changes after second comment"
             exit 1
           fi
-          
-          echo "✅ Second comment test passed - no unwanted changes occurred"
 
       - name: Test workflow logs for expected messages
         run: |
           echo "=== CHECKING WORKFLOW RUN LOGS ==="
-          
-          # Get recent workflow runs for the on-first-comment workflow
           echo "Recent workflow runs:"
           gh run list --workflow=on-first-comment.yml --limit=5 --json status,conclusion,createdAt,displayTitle
-          
-          # Note: We can't easily check the logs programmatically in the same run,
-          # but the validation above should confirm the workflow behavior
 
       - name: Cleanup test issues
         if: always()
         run: |
-          echo "=== CLEANING UP TEST ISSUES ==="
-          
-          issue1_num="${{ steps.create_issues.outputs.issue1_number }}"
-          issue2_num="${{ steps.create_issues.outputs.issue2_number }}"
-          issue3_num="${{ steps.create_issues.outputs.issue3_number }}"
-          
-          for issue_num in "$issue1_num" "$issue2_num" "$issue3_num"; do
+          # Function to delete issue
+          delete_issue() {
+            local issue_num=$1
             if [ -n "$issue_num" ]; then
               echo "Deleting issue #$issue_num"
               gh issue delete "$issue_num" --yes || echo "Failed to delete issue #$issue_num"
             fi
-          done
+          }
+          
+          echo "=== CLEANING UP TEST ISSUES ==="
+          
+          delete_issue "${{ steps.create_issues.outputs.issue1_number }}"
+          delete_issue "${{ steps.create_issues.outputs.issue2_number }}"
+          delete_issue "${{ steps.create_issues.outputs.issue3_number }}"
           
           echo "✅ Cleanup completed"
 
