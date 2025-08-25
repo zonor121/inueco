@@ -41,7 +41,8 @@ jobs:
           script: |
             const blockedUsers = [
               "RooveThelema",
-              "Tema13cm"
+              "Tema13cm",
+              "FunnySmailey"
             ];
 
             const commentUser = context.payload.comment.user.login;
