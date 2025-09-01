@@ -7,3 +7,6 @@ https://www.python.org/downloads/
 https://git-scm.com/downloads/win
     В свою папку
 https://desktop.github.com/download/
+
+ms-python.python
+https://gigacode.ru/
