@@ -10,4 +10,5 @@ https://git-scm.com/downloads/win
 https://desktop.github.com/download/
 
 ms-python.python
+Codeium.codeium
 https://gigacode.ru/
