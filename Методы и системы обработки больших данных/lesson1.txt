@@ -62,3 +62,5 @@ https://ru.wikipedia.org/wiki/Уровень_изолированности_тр
 https://ru.wikipedia.org/wiki/ACID
 
 https://www.db-fiddle.com/f/vBm4uvN8M6W6XZ8siQSnrH/2
+
+https://www.db-fiddle.com/f/vBm4uvN8M6W6XZ8siQSnrH/4
