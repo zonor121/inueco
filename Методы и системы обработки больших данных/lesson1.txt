@@ -4,3 +4,10 @@ https://www.db-fiddle.com/f/mLbmUrYy9AMKjbFYawkBPB/1
 https://www.db-fiddle.com/f/bYPYvudd7BhPmtLYtzDyQE/0
 https://postgrespro.ru/docs/postgrespro/16/sql-createtable
 https://postgrespro.ru/docs/postgrespro/16/sql-createtable#SQL-CREATETABLE-PARMS-PRIMARY-KEY
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/0
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/1
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/2
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/2
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/3
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/4
+https://www.db-fiddle.com/f/7SmX3YRNShMaX9bK3etYcD/5
