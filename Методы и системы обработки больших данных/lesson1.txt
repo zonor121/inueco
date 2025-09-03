@@ -60,3 +60,5 @@ https://www.db-fiddle.com/f/eM6zY9ZPatH4HabtX67pYV/5
 https://postgrespro.ru/docs/postgresql/15/tutorial-transactions
 https://ru.wikipedia.org/wiki/Уровень_изолированности_транзакций
 https://ru.wikipedia.org/wiki/ACID
+
+https://www.db-fiddle.com/f/vBm4uvN8M6W6XZ8siQSnrH/2
