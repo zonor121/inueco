@@ -18,3 +18,12 @@ https://www.db-fiddle.com/f/637d1tmrRhxktNHWghMwNY/2
 https://www.db-fiddle.com/f/637d1tmrRhxktNHWghMwNY/3
 
 https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/0
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/9
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/10
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/11
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/4
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/5
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/6
+https://www.db-fiddle.com/f/imgkHqPrpgdP4bMBzJ7BGG/7
+https://www.postgresql.org/docs/current/functions-matching.html
+https://ru.hexlet.io/qna/sql/questions/chto-takoe-tilda-v-postgresql
