@@ -9,10 +9,10 @@ def custom_input(is_operation: bool = None):
         operation = input("Введите операцию: ")
         if operation != "exit":
             return operation
-    else:
-        number = input("Введите число: ")
-        if number != "exit":
-            return int(number)
+    
+    number = input("Введите число: ")
+    if number != "exit":
+        return int(number)
     raise Exception("exit")
 
 while True:
