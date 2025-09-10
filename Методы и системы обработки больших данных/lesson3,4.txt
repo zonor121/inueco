@@ -1,3 +1,7 @@
 https://www.db-fiddle.com/f/ob3W4Qojfa1Nvztf8zJKbu/0
 https://www.db-fiddle.com/f/ob3W4Qojfa1Nvztf8zJKbu/1
 https://www.db-fiddle.com/f/ob3W4Qojfa1Nvztf8zJKbu/2
+
+https://www.db-fiddle.com/f/5Gb2xNM4abKV1ofxcvU5Lo/1
+https://www.db-fiddle.com/f/5Gb2xNM4abKV1ofxcvU5Lo/2
+https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-JOIN:~:text=row%20in%20T2.-,FULL%20OUTER%20JOIN,-First%2C%20an%20inner
