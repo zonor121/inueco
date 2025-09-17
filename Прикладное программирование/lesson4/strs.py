@@ -8,8 +8,9 @@ print(''.join(sorted1))
 msg = ' 3 4 456  456456    6 5'
 print(msg.split())
 print(msg.strip())
-"""# 0x00 - 0
-someStr.replace()
+
+# 0x00 - 0
+#someStr.replace()
 
 msg = 'qakhbqvbhf'
 msg_encoded = msg.encode('utf-8')
