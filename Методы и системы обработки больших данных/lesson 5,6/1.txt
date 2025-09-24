@@ -10,3 +10,9 @@ https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/20
 https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/21
 https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/22
 https://en.wikipedia.org/wiki/Union_(set_theory)
+
+https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/23
+https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/24
+https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/25
+https://www.db-fiddle.com/f/uJPHGeZkAfu1owjHNERrTd/26
+https://en.wikipedia.org/wiki/Intersection_(set_theory)
