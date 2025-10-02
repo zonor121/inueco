@@ -15,7 +15,6 @@ shd101wyy.markdown-preview-enhanced
 GitHub.vscode-pull-request-github
 mintlify.document
 https://gigacode.ru/
-GitHub.vscode-pull-request-github
 
 https://ru.pythontutor.ru/problem/old/1
 https://code-basics.com/ru
