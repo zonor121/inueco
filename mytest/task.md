@@ -39,3 +39,5 @@ result = analyze_temperature(temperatures)
 print(result)
 # Ожидаемый результат: None
 ```
+
+![alt text](image.png)
