@@ -6,6 +6,8 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 uv init
 
+uv venv
+
 uv add --dev pytest
 
 #скопировать и добавить папки src, app, tests
