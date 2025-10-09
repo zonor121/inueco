@@ -94,7 +94,7 @@
 
 ```python
 import pytest
-from complex_function import analyze_text_statistics
+from complex_func import analyze_text_statistics
 
 def test_basic_text_analysis():
     # Ваш код здесь
