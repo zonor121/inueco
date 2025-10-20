@@ -1,8 +1,13 @@
+"""
+docstring
+"""
 #поправить по pep8 (flake8), по pylance, по sonarqube, по pylint
 #pip install pylint
 #pip install flake8
 #python -m pylint calculator_min\utils.py
 #python -m flake8 calculator_min\utils.py
+#flake8 calculator_min\utils.py
+#pylint calculator_min\utils.py
 import math
 
 
