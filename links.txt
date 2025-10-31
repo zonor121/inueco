@@ -12,6 +12,8 @@ https://git-scm.com/downloads/win
 https://desktop.github.com/download/
 https://www.postman.com/downloads/
 
+pip install -r requirements.txt
+
 расширения
 ms-python.python
 Codeium.codeium
