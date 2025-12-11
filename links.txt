@@ -54,3 +54,4 @@ hh.ru
 документация
 https://docs.astral.sh/ruff/
 https://docs.python.org/3/library/index.html
+https://habr.com/ru/articles/959760/
