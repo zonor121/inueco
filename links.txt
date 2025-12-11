@@ -15,6 +15,7 @@ https://www.postman.com/downloads/
 pip install -r requirements.txt
 
 расширения
+donjayamanne.python-extension-pack
 ms-python.python
 Codeium.codeium
 shd101wyy.markdown-preview-enhanced
