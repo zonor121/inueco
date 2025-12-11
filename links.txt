@@ -24,6 +24,7 @@ mintlify.document
 SonarSource.sonarlint-vscode
 https://gigacode.ru/
 mechatroner.rainbow-csv
+MS-CEINTL.vscode-language-pack-ru
 
 для обучения
 https://code-basics.com/ru
