@@ -25,6 +25,7 @@ SonarSource.sonarlint-vscode
 https://gigacode.ru/
 mechatroner.rainbow-csv
 MS-CEINTL.vscode-language-pack-ru
+ms-toolsai.jupyter
 
 для обучения
 https://code-basics.com/ru
