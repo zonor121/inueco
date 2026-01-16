@@ -10,6 +10,8 @@ class TestDivide(unittest.TestCase):
     def test_division_by_zero(self):
         with self.assertRaises(ValueError):
             divide(10, 0)
-            
+
+#протестировать функцию pow
+
 if __name__ == '__main__':
     unittest.main()
