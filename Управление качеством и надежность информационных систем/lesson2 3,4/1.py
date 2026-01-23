@@ -38,3 +38,8 @@ class TestData(unittest.TestCase):
         self.data.append(1)
         self.assertEqual(self.data, [1])
 
+def setUp(self):
+    if some_condition:
+        self.data = [1, 2]
+    else:
+        self.data = [3, 4]
