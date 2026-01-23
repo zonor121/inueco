@@ -24,3 +24,17 @@ def setUp(self):
 def test_sum(self):
     result = sum(self.data)
     self.assertEqual(result, 6)
+
+
+class TestData(unittest.TestCase):
+
+    def setUp(self):
+        self.data = []
+
+    def tearDown(self):
+        self.data.clear()
+
+    def test_add(self):
+        self.data.append(1)
+        self.assertEqual(self.data, [1])
+
