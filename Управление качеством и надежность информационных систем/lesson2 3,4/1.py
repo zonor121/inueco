@@ -12,6 +12,12 @@ class TestList(unittest.TestCase):
         self.data.append(4)
         self.assertEqual(self.data, [1, 2, 3, 4])
 
+def test_sum(self):
+    data = [1, 2, 3]
+    result = sum(data)
+    self.assertEqual(result, 6)
+
+
 def setUp(self):
     self.data = [1, 2, 3]
 
