@@ -43,3 +43,16 @@ def setUp(self):
         self.data = [1, 2]
     else:
         self.data = [3, 4]
+
+class TestNumbers(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.values = [1, 2, 3]
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.values.clear()
+
+    def test_sum(self):
+        self.assertEqual(sum(self.values), 6)
