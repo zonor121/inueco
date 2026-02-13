@@ -16,11 +16,9 @@ def bp_category(systolic: int, diastolic: int) -> str:
     Возвращает одну из категорий:
     'normal', 'elevated', 'stage1', 'stage2', 'crisis'
     """
-    # Проверка на подозрительно низкие данные
     if systolic < 70 or diastolic < 40:
         raise ValueError("Blood pressure values are suspiciously low")
 
-    # Логика определения категории (порядок важен: от самого высокого к низкому)
     if systolic >= 180 or diastolic >= 120:
         return 'crisis'
     
